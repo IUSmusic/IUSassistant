@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>I/US Music Assistant Songwriter</title>
+    <meta
+      name="description"
+      content="Theory-aware musical improvisation preview app for MIDI and browser keyboard input."
+    />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero card">
+        <div class="brand-block">
+          <img src="./assets/logo.png" alt="I/US Music Assistant Songwriter logo" class="logo" />
+          <div>
+            <p class="eyebrow">Official</p>
+            <h1>I/US Music Assistant Songwriter</h1>
+          </div>
+        </div>
+        <div class="hero-actions">
+          <button id="startAudioBtn" class="primary">Enable Audio</button>
+          <button id="connectMidiBtn" class="secondary">Connect MIDI</button>
+          <span id="midiStatus" class="pill">MIDI not connected</span>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="card control-panel">
+          <div class="section-title-row">
+            <h2>Improvisation Controls</h2>
+            <span class="pill success">GitHub Pages ready</span>
+          </div>
+
+          <div class="controls-grid">
+            <label>
+              Root
+              <select id="rootSelect"></select>
+            </label>
+            <label>
+              Scale
+              <select id="scaleSelect">
+                <option value="major">Major</option>
+                <option value="minor">Minor</option>
+                <option value="dorian">Dorian</option>
+                <option value="mixolydian">Mixolydian</option>
+                <option value="blues">Blues</option>
+                <option value="pentatonic">Pentatonic</option>
+              </select>
+            </label>
+            <label>
+              Style
+              <select id="styleSelect">
+                <option value="balanced">Balanced</option>
+                <option value="arpeggio">Arpeggio</option>
+                <option value="jazzy">Jazzy</option>
+                <option value="ambient">Ambient</option>
+              </select>
+            </label>
+            <label>
+              Engine
+              <select id="modelSelect">
+                <option value="theory">Theory Engine</option>
+                <option value="musicvae-2bar">Magenta MusicVAE · 2-bar Melody</option>
+                <option value="musicvae-4bar">Magenta MusicVAE · 4-bar Melody</option>
+              </select>
+            </label>
+            <label>
+              Step Length
+              <select id="stepSelect">
+                <option value="4">4 beats</option>
+                <option value="3">3 beats</option>
+                <option value="1.5">1.5 beats</option>
+              </select>
+            </label>
+            <label>
+              Chord Loop
+              <select id="progressionSelect">
+                <option value="I-IV-V-I">I - IV - V - I</option>
+                <option value="ii-V-I-vi">ii - V - I - vi</option>
+                <option value="i-VI-III-VII">i - VI - III - VII</option>
+                <option value="I-vi-IV-V">I - vi - IV - V</option>
+              </select>
+            </label>
+            <label>
+              Continuation Length
+              <select id="barsSelect">
+                <option value="2">2 bars</option>
+                <option value="4" selected>4 bars</option>
+                <option value="8">8 bars</option>
+              </select>
+            </label>
+            <label class="full-width">
+              Temperature / Freedom
+              <input id="temperatureRange" type="range" min="0" max="100" value="42" />
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button id="seedDemoBtn" class="secondary">Load Demo Phrase</button>
+            <button id="clearBtn" class="secondary">Clear Phrase</button>
+            <button id="improviseBtn" class="primary">Generate Continuation</button>
+          </div>
+        </section>
+
+        <section class="card keyboard-panel">
+          <div class="section-title-row">
+            <h2>Play or Record Notes</h2>
+            <span id="recordStatus" class="pill">Idle</span>
+          </div>
+          <div id="keyboard" class="keyboard"></div>
+          <div class="button-row compact">
+            <button id="playPhraseBtn" class="secondary">Play Phrase</button>
+            <button id="playAllBtn" class="secondary">Play Full Result</button>
+            <button id="exportMidiBtn" class="primary">Export MIDI</button>
+          </div>
+        </section>
+
+        <section class="card output-panel">
+          <div class="section-title-row">
+            <h2>Generated Output</h2>
+            <span class="pill">Live preview</span>
+          </div>
+          <div class="stats-grid">
+            <div>
+              <span class="stat-label">Captured Notes</span>
+              <strong id="capturedCount">0</strong>
+            </div>
+            <div>
+              <span class="stat-label">Generated Notes</span>
+              <strong id="generatedCount">0</strong>
+            </div>
+            <div>
+              <span class="stat-label">Scale</span>
+              <strong id="scaleReadout">C major</strong>
+            </div>
+            <div>
+              <span class="stat-label">Step Size</span>
+              <strong id="stepReadout">4 beats</strong>
+            </div>
+          </div>
+
+          <div class="timeline-block">
+            <h3>Phrase Timeline</h3>
+            <div id="timeline" class="timeline"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.23.1"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
