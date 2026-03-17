@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>I/US Music Assistant Songwriter</title>
-    <meta name="description" content="Official-style music assistant with one-click full track generation, MIDI input, playable results, and bottom arrangement timeline." />
+    <meta name="description" content="Official web preview for browser-based music generation, arrangement, MIDI input, Magenta MusicVAE, lyrics suggestions, and export tools." />
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
@@ -35,6 +35,14 @@
           <div class="section-head">
             <h2>Configuration</h2>
             <div id="statusPill" class="status">Idle</div>
+          </div>
+
+          <div class="progress-wrap" aria-live="polite">
+            <div class="progress-head">
+              <span id="progressLabel">Models</span>
+              <span id="progressValue">0%</span>
+            </div>
+            <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
           </div>
 
           <div class="controls-grid">
@@ -111,6 +119,8 @@
               <span>Freedom</span>
               <input id="temperatureRange" type="range" min="0" max="100" value="42" />
             </label>
+            <label class="checkbox-row"><input id="autoHarmonyToggle" type="checkbox" /> <span>Auto Harmony</span></label>
+            <label class="checkbox-row"><input id="liveModeToggle" type="checkbox" /> <span>Live Mode</span></label>
           </div>
 
           <div class="button-row block-row">
@@ -121,6 +131,10 @@
             <button id="generateBtn" class="btn">◆ Generate Clip</button>
             <button id="generateTrackBtn" class="btn btn-solid">⬢ Full Track</button>
           </div>
+          <div class="button-row block-row top-gap">
+            <button id="generateDrumsBtn" class="btn">◈ Drums</button>
+            <button id="suggestLyricsBtn" class="btn">✎ Lyrics</button>
+          </div>
 
           <div class="subpanel">
             <div class="section-head small-head">
@@ -130,10 +144,20 @@
             <div id="keyboard" class="keyboard" aria-label="On-screen piano keyboard"></div>
             <div class="button-row compact">
               <button id="playSeedBtn" class="btn">▷ Seed</button>
-              <button id="exportMidiBtn" class="btn btn-solid">⬇ MIDI</button>
+              <button id="micCaptureBtn" class="btn">◉ Hum</button>
+              <div id="micPill" class="status">Mic off</div>
+            </div>
+            <div class="button-row compact">
+              <button id="exportMidiBtn" class="btn">⬇ MIDI</button>
+              <button id="exportWavBtn" class="btn btn-solid">⬇ WAV</button>
             </div>
             <div id="seedList" class="seed-list"></div>
           </div>
+
+          <details class="subpanel shortcuts-panel">
+            <summary>Keyboard Shortcuts</summary>
+            <ul id="shortcutList" class="shortcut-list"></ul>
+          </details>
         </aside>
 
         <section class="content">
@@ -158,10 +182,21 @@
             <div id="resultsList" class="results-list"></div>
           </section>
 
+          <section class="panel lyrics-panel">
+            <div class="section-head">
+              <h2>Lyrics Assistant</h2>
+              <div class="status">Chord-aware phrase sketch</div>
+            </div>
+            <div id="lyricsBox" class="lyrics-box">No lyrics suggested yet.</div>
+            <div class="button-row compact">
+              <button id="speakLyricsBtn" class="btn">♫ Speak</button>
+            </div>
+          </section>
+
           <section class="panel arranger-panel bottom-arranger">
             <div class="section-head">
               <h2>Arrangement</h2>
-              <div id="arrangementMeta" class="status">Bottom timeline · 3 tracks · 16 bars</div>
+              <div id="arrangementMeta" class="status">Bottom timeline · 4 tracks · 16 bars</div>
             </div>
             <div id="arrangementGrid" class="arrangement-grid"></div>
           </section>
