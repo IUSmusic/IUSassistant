@@ -11,12 +11,6 @@ It runs with no backend and no build step. The app loads Magenta.js and Soundfon
 
 ## Core Logic
 
-The app is built around three main files:
-
-- `index.html` — interface structure and panels
-- `style.css` — official minimal UI styling, theme handling, responsive layout
-- `app.js` — application logic, generation, persistence, playback, arrangement, export, and integrations
-
 Core data structures include:
 
 - a global `state` object for audio, MIDI, seed notes, generated clips, arrangement data, and cached models
