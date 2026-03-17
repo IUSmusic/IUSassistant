@@ -1,8 +1,6 @@
 # I/US Music Assistant Songwriter
 
-https://iusmusic.github.io/IUSassistant/
-
-Official web preview:  
+Web preview:  
 https://iusmusic.github.io/IUSassistant/
 
 ## Overview
