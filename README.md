@@ -1,7 +1,6 @@
 # I/US Music Assistant Songwriter
 
 https://iusmusic.github.io/IUSassistant/
-# I/US Source-Available License 1.0
 
 # I/US Music Assistant Songwriter
 
@@ -139,6 +138,8 @@ GitHub deploy path:
 
 See `LICENSE` for source-available terms.
 
+# I/US Source-Available License 1.0
+
 
 Copyright (c) 2026 Pezhman Farhangi  
 I/US Music
@@ -193,3 +194,4 @@ In no event shall the author or copyright holder be liable for any claim, damage
 For licensing requests, commercial rights, redistribution requests, or permission to use protected brand assets, prior written permission must be obtained from I/US Music.
 If this repository is hosted publicly on GitHub, GitHub users may have certain limited rights to view and fork the repository through GitHub’s own platform functionality, as required by GitHub’s Terms of Service. No permission is granted beyond those minimum platform rights unless explicit written permission is given by I/US Music.
 
+# I/US Source-Available License 1.0
