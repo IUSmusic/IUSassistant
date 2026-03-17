@@ -23,7 +23,7 @@ Core data structures include:
 - a central `els` object for all UI bindings
 - lightweight namespaces inside `app.js` for `MusicUtils`, `UI`, `Settings`, `Persistence`, `AudioEngine`, `Input`, `Engine`, `Lyrics`, `Arranger`, `Exporter`, and `App`
 
-## Implemented Now
+## Current Features:
 
 - browser audio playback
 - SoundFont-backed playback with browser synth fallback
@@ -104,13 +104,6 @@ These are now present in the current preview:
 - Magenta.js / MusicVAE model selection
 - SoundFont-backed playback with synth fallback
 
-## Deployment
-
-GitHub deploy path:
-
-- static hosting on GitHub Pages
-- static hosting on Netlify
-
 ## Notes
 
 - Web MIDI works best in Chrome and Edge.
@@ -131,15 +124,11 @@ GitHub deploy path:
 - `L` suggests lyrics
 
 ## License
-
-See `LICENSE` for source-available terms.
-
 # I/US Source-Available License 1.0
 
-
+See `LICENSE` for source-available terms.
 Copyright (c) 2026 Pezhman Farhangi  
 I/US Music
-
 
 This repository and its contents are made available for viewing, reference, study, and limited private internal evaluation only.
 
