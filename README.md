@@ -1,5 +1,5 @@
 <a href="LICENSE">
-  <img src="images/license-badge.png" alt="License badge" width="50">
+  <img src="images/license-badge.png" alt="License badge" width="70">
 </a>
 
 # I/US Music Assistant Songwriter
