@@ -23,7 +23,7 @@ Core data structures include:
 
 
 ## Current Features
-(18 March 2026)
+(Update 18 March 2026)
 
 - browser audio playback
 - SoundFont-backed playback with browser synth fallback
