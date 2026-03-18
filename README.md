@@ -21,7 +21,9 @@ Core data structures include:
 - a central `els` object for all UI bindings
 - lightweight namespaces inside `app.js` for `MusicUtils`, `UI`, `Settings`, `Persistence`, `AudioEngine`, `Input`, `Engine`, `Lyrics`, `Arranger`, `Exporter`, and `App`
 
-## Current Features:
+
+## Current Features
+(18 March 2026)
 
 - browser audio playback
 - SoundFont-backed playback with browser synth fallback
@@ -42,7 +44,6 @@ Core data structures include:
 - drum / groove generation lane
 - local persistence with `localStorage`
 - model load progress UI
-- static hosting compatibility for GitHub Pages and Netlify
 
 ## Technical Integrations
 
