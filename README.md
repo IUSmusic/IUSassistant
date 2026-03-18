@@ -1,4 +1,6 @@
-![License badge](images/license-badge.png)
+<a href="LICENSE">
+  <img src="images/license-badge.png" alt="License badge" width="80">
+</a>
 
 # I/US Music Assistant Songwriter
 
