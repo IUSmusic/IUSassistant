@@ -1,6 +1,10 @@
 (function () {
   'use strict';
 
+  /* ==========================================================
+   * 1. MUSICAL CONSTANTS & GLOBAL LOOKUPS
+   * ========================================================== */
+
   /** @type {string[]} */
   const ROOTS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   const ROOT_LABEL = { 'C#': 'C♯', 'D#': 'D♯', 'F#': 'F♯', 'G#': 'G♯', 'A#': 'A♯' };
@@ -21,6 +25,10 @@
   const BAR_BEATS = 4;
   const STORAGE_KEY = 'ius-assistant-state-v2';
 
+  /* ==========================================================
+   * 2. DOM REFERENCES & UI MOUNT POINTS
+   * ========================================================== */
+
   /** @type {Record<string, HTMLElement|null>} */
   const els = {
     themeSelect: document.getElementById('themeSelect'),
@@ -37,6 +45,8 @@
     temperatureRange: document.getElementById('temperatureRange'),
     autoHarmonyToggle: document.getElementById('autoHarmonyToggle'),
     liveModeToggle: document.getElementById('liveModeToggle'),
+    liveCaptureToggle: document.getElementById('liveCaptureToggle'),
+    liveBufferSelect: document.getElementById('liveBufferSelect'),
     statusPill: document.getElementById('statusPill'),
     midiPill: document.getElementById('midiPill'),
     capturedCount: document.getElementById('capturedCount'),
@@ -44,6 +54,8 @@
     modeReadout: document.getElementById('modeReadout'),
     scaleReadout: document.getElementById('scaleReadout'),
     arrangementMeta: document.getElementById('arrangementMeta'),
+    companionBox: document.getElementById('companionBox'),
+    companionStatus: document.getElementById('companionStatus'),
     keyboard: document.getElementById('keyboard'),
     seedList: document.getElementById('seedList'),
     resultsList: document.getElementById('resultsList'),
@@ -62,6 +74,8 @@
     micPill: document.getElementById('micPill'),
     playArrangementBtn: document.getElementById('playArrangementBtn'),
     clearArrangementBtn: document.getElementById('clearArrangementBtn'),
+    fillProgressionBtn: document.getElementById('fillProgressionBtn'),
+    exportSetBtn: document.getElementById('exportSetBtn'),
     exportMidiBtn: document.getElementById('exportMidiBtn'),
     exportWavBtn: document.getElementById('exportWavBtn'),
     progressFill: document.getElementById('progressFill'),
@@ -70,6 +84,10 @@
     lyricsBox: document.getElementById('lyricsBox'),
     shortcutList: document.getElementById('shortcutList')
   };
+
+  /* ==========================================================
+   * 3. RUNTIME STATE, TRANSPORT, AND SESSION MEMORY
+   * ========================================================== */
 
   /** @type {{audioContext: AudioContext|null, masterGain: GainNode|null, soundfont: any, soundfontLoading: boolean, midiAccess: MIDIAccess|null, seedNotes: any[], resultClips: any[], nextClipId: number, arrangementBars: number, arrangement: any[][], modelInstances: Record<string, any>, liveTimer: number|null, postGenerateHooks: Function[], experimentalPlugins: Function[], micStream: MediaStream|null, micSource: MediaStreamAudioSourceNode|null, micAnalyser: AnalyserNode|null, micFrame: number|null, micIsCapturing: boolean, micPendingMidi: number|null, micStableFrames: number, micLastCaptureTs: number, micLastCapturedMidi: number|null}} */
   const state = {
@@ -95,8 +113,21 @@
     micPendingMidi: null,
     micStableFrames: 0,
     micLastCaptureTs: 0,
-    micLastCapturedMidi: null
+    micLastCapturedMidi: null,
+    transportTimeouts: [],
+    arrangementIsPlaying: false,
+    arrangementPaused: false,
+    arrangementStartedAt: 0,
+    transportTotalBeats: 0,
+    liveCaptureSuggestedBar: null,
+    lastSuggestedTrack: null,
+    companionRoots: [],
+    companionClipId: null
   };
+
+  /* ==========================================================
+   * 4. MUSIC THEORY, SCALE, AND NOTE UTILITY HELPERS
+   * ========================================================== */
 
   const MusicUtils = {
     /** @param {number} midi */
@@ -162,10 +193,24 @@
     }
   };
 
+  /* ==========================================================
+   * 5. UI HELPERS, SETTINGS, AND PERSISTENCE
+   * ========================================================== */
+
   const UI = {
     setStatus(text) { if (els.statusPill) els.statusPill.textContent = text; },
     setMidi(text) { if (els.midiPill) els.midiPill.textContent = text; },
     setMic(text) { if (els.micPill) els.micPill.textContent = text; },
+    setCompanion(text, status = 'Ready') {
+      if (els.companionBox) els.companionBox.textContent = text;
+      if (els.companionStatus) els.companionStatus.textContent = status;
+    },
+    syncLiveCaptureUI() {
+      const row = document.querySelector('.live-capture-row');
+      const armed = Boolean(els.liveCaptureToggle?.checked);
+      row?.classList.toggle('is-armed', armed);
+      if (row) row.setAttribute('aria-pressed', String(armed));
+    },
     setProgress(value, label) {
       const pct = Math.max(0, Math.min(100, Math.round(value)));
       if (els.progressFill) els.progressFill.style.width = `${pct}%`;
@@ -179,7 +224,7 @@
       if (!els.shortcutList) return;
       const shortcuts = [
         ['A–K', 'play notes from the computer keyboard'],
-        ['Space', 'play arrangement'],
+        ['Space', 'toggle arrangement play/pause'],
         ['Shift + Space', 'play current seed'],
         ['G', 'generate clip'],
         ['T', 'generate full track'],
@@ -234,7 +279,9 @@
         bpm: String(els.bpmInput?.value || '110'),
         temperature: String(els.temperatureRange?.value || '42'),
         autoHarmony: Boolean(els.autoHarmonyToggle?.checked),
-        liveMode: Boolean(els.liveModeToggle?.checked)
+        liveMode: Boolean(els.liveModeToggle?.checked),
+        liveCapture: Boolean(els.liveCaptureToggle?.checked),
+        liveBuffer: String(els.liveBufferSelect?.value || '8')
       };
     },
     restore(saved) {
@@ -248,6 +295,8 @@
       });
       if (els.autoHarmonyToggle && saved && saved.autoHarmony != null) els.autoHarmonyToggle.checked = !!saved.autoHarmony;
       if (els.liveModeToggle && saved && saved.liveMode != null) els.liveModeToggle.checked = !!saved.liveMode;
+      if (els.liveCaptureToggle && saved && saved.liveCapture != null) els.liveCaptureToggle.checked = !!saved.liveCapture;
+      if (els.liveBufferSelect && saved && saved.liveBuffer != null) els.liveBufferSelect.value = saved.liveBuffer;
     }
   };
 
@@ -269,6 +318,22 @@
     },
     load() {
       try {
+        const params = new URLSearchParams(window.location.search);
+        const shared = params.get('set');
+        if (shared) {
+          const decoded = JSON.parse(decodeURIComponent(escape(window.atob(shared))));
+          Settings.restore(decoded.settings || {});
+          state.seedNotes = Array.isArray(decoded.seedNotes) ? decoded.seedNotes : [];
+          state.resultClips = Array.isArray(decoded.resultClips) ? decoded.resultClips : [];
+          state.nextClipId = Number(decoded.nextClipId) || (state.resultClips.length + 1);
+          state.arrangementBars = Number(decoded.arrangementBars) || 16;
+          state.arrangement = Array.isArray(decoded.arrangement)
+            ? decoded.arrangement.map((track) => Array.isArray(track) ? track : Array(state.arrangementBars).fill(null))
+            : Array.from({ length: TRACKS }, () => Array(state.arrangementBars).fill(null));
+          if (els.lyricsBox && decoded.lyrics) els.lyricsBox.textContent = decoded.lyrics;
+          UI.setStatus('Shared set loaded');
+          return;
+        }
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const saved = JSON.parse(raw);
@@ -286,6 +351,10 @@
       }
     }
   };
+
+  /* ==========================================================
+   * 6. AUDIO, KEYBOARD, MIDI, AND LIVE INPUT CAPTURE
+   * ========================================================== */
 
   const AudioEngine = {
     async ensureAudio() {
@@ -385,15 +454,36 @@
         key.type = 'button';
         key.className = note.includes('#') ? 'key black' : 'key';
         key.dataset.note = note;
+        key.setAttribute('role', 'button');
+        key.tabIndex = 0;
+        key.setAttribute('aria-label', `${note} key`);
         key.textContent = note.replace(/\d/, '').replace('#', '♯');
         key.addEventListener('pointerdown', () => Input.triggerInput(note, 0.5, 0.8));
+        key.addEventListener('keydown', (event) => {
+          if (event.key === ' ' || event.key === 'Enter') {
+            event.preventDefault();
+            Input.triggerInput(note, 0.5, 0.8);
+          }
+        });
         els.keyboard.appendChild(key);
       });
+    },
+    trimSeedToLiveBuffer() {
+      const maxBars = Number(els.liveBufferSelect?.value || 8);
+      const maxBeats = maxBars * BAR_BEATS;
+      const totalBeats = state.seedNotes.reduce((max, note) => Math.max(max, note.time + note.duration), 0);
+      if (totalBeats <= maxBeats) return;
+      const trimBefore = totalBeats - maxBeats;
+      state.seedNotes = state.seedNotes
+        .map((note) => ({ ...note, time: note.time - trimBefore }))
+        .filter((note) => note.time + note.duration > 0)
+        .map((note) => ({ ...note, time: Math.max(0, note.time) }));
     },
     addSeed(noteName, duration = 0.5, velocity = 0.8) {
       const prev = state.seedNotes[state.seedNotes.length - 1];
       const time = prev ? prev.time + prev.duration : 0;
       state.seedNotes.push({ note: noteName, midi: MusicUtils.nameToMidi(noteName), time, duration, velocity, origin: 'seed', kind: 'note' });
+      if (els.liveCaptureToggle?.checked) Input.trimSeedToLiveBuffer();
       Persistence.save();
     },
     async triggerInput(noteName, duration = 0.5, velocity = 0.8) {
@@ -524,7 +614,34 @@
     }
   };
 
+  /* ==========================================================
+   * 7. MUSICVAE LOADING, CLIP GENERATION, AND VARIATIONS
+   * ========================================================== */
+
   const Engine = {
+    clipRootNotes(clip) {
+      const ordered = [...new Set((clip?.notes || []).filter((note) => note.kind !== 'drum').sort((a, b) => a.time - b.time).slice(0, 8).map((note) => MusicUtils.niceNote(note.note.replace(/\d+/g, ''))))];
+      return ordered;
+    },
+    sendClipToCompanion(clipId) {
+      const clip = state.resultClips.find((result) => result.id === clipId);
+      if (!clip) return;
+      const roots = Engine.clipRootNotes(clip);
+      state.companionRoots = roots;
+      state.companionClipId = clip.id;
+      const voicings = [
+        `Root shell: ${roots.slice(0, 3).join(' – ') || 'C – E – G'}`,
+        `1st inversion: ${roots.slice(1).concat(roots[0] || []).slice(0, Math.max(roots.length, 3)).join(' – ') || 'E – G – C'}`,
+        `Spread voicing: ${(roots[0] || 'C')} – ${(roots[2] || roots[0] || 'G')} – ${(roots[1] || 'E')}`
+      ];
+      UI.setCompanion(`Clip ${clip.name}\n\nRoots: ${roots.join(', ') || 'No pitched notes'}\n\nTry these on PianoCompanion:\n• ${voicings.join('\n• ')}`, 'Clip sent');
+      try {
+        const params = new URLSearchParams({ roots: roots.join(','), bpm: String(Settings.bpm()), scale: String(els.scaleSelect?.value || 'major') });
+        window.open(`./pianocompanion.html?${params.toString()}`, '_blank', 'noopener');
+      } catch (error) {
+        console.warn(error);
+      }
+    },
     baseSeed() {
       if (state.seedNotes.length) return state.seedNotes.slice();
       Input.demoSeed();
@@ -628,13 +745,21 @@
     snapToScale(midi, root, scaleName) {
       return MusicUtils.nearest(midi, MusicUtils.midiPool(root, scaleName, [3,4,5,6]), 2);
     },
-    async generateWithMagenta(modelKey, bars) {
-      UI.setStatus('Loading model');
+    toNoteSequence(seedNotes) {
+      return {
+        notes: seedNotes.map((note) => ({ pitch: note.midi, startTime: note.time, endTime: note.time + note.duration, velocity: Math.round((note.velocity || 0.8) * 127) })),
+        totalTime: seedNotes.reduce((max, note) => Math.max(max, note.time + note.duration), 0)
+      };
+    },
+    async generateWithMagenta(modelKey, bars, seedOverride = null) {
+      UI.setStatus('Loading model…');
       const model = await Engine.getMusicVAE(modelKey);
       UI.setStatus('Sampling');
       const freedom = Number(els.temperatureRange?.value || 42) / 100;
       const temp = 0.7 + freedom * 0.8;
-      const sample = await model.sample(1, temp);
+      const sample = seedOverride && seedOverride.length && model.interpolate
+        ? await model.interpolate([Engine.toNoteSequence(seedOverride), Engine.toNoteSequence(seedOverride)], 1, temp)
+        : await model.sample(1, temp);
       const sequence = sample && sample[0];
       if (!sequence || !sequence.notes || !sequence.notes.length) throw new Error('Model returned empty sequence');
       const root = String(els.rootSelect?.value || 'C');
@@ -649,6 +774,42 @@
       })).sort((a, b) => a.time - b.time);
       const first = notes[0]?.time || 0;
       return notes.slice(0, Math.max(16, bars * 8)).map((note) => ({ ...note, time: note.time - first, note: MusicUtils.midiToName(note.midi) }));
+    },
+    async generateVariationForTrack(trackIndex) {
+      const bar = Arranger.currentPlayheadBar();
+      const slot = state.arrangement[trackIndex]?.[bar] || state.arrangement[trackIndex]?.find((entry) => entry && entry.offsetBar === 0);
+      if (!slot) return UI.setStatus('No clip on that track');
+      const sourceClip = state.resultClips.find((result) => result.id === slot.clipId);
+      if (!sourceClip) return UI.setStatus('Track clip missing');
+      const engine = String(els.engineSelect?.value || 'theory');
+      const originalSeed = state.seedNotes.slice();
+      try {
+        state.seedNotes = sourceClip.notes.map((note) => ({ ...note, time: note.time - ((slot.offsetBar || 0) * BAR_BEATS), origin: 'seed' }));
+        const notes = engine === 'theory' ? Engine.generateTheoryForBars(sourceClip.bars, slot.startBar || 0) : await Engine.generateWithMagenta(engine, sourceClip.bars, state.seedNotes);
+        const clip = Engine.buildClip(`Variation · T${trackIndex + 1} · ${state.resultClips.length + 1}`, engine, sourceClip.bars, notes, sourceClip.kind, sourceClip.lane);
+        state.resultClips.unshift(clip);
+        Arranger.placeClip(clip.id, trackIndex, slot.startBar || 0);
+        UI.setStatus(`Variation swapped on ${TRACK_LABELS[trackIndex]}`);
+      } catch (error) {
+        console.error(error);
+        UI.setStatus('Variation fallback');
+      } finally {
+        state.seedNotes = originalSeed;
+        Persistence.save();
+        App.updateUI();
+      }
+    },
+    fillProgression(trackIndex = 0) {
+      for (let bar = 0; bar < state.arrangementBars; bar += 1) {
+        if (state.arrangement[trackIndex][bar]) continue;
+        const notes = Engine.generateTheoryForBars(1, bar);
+        const clip = Engine.buildClip(`Prog ${bar + 1}`, 'theory', 1, notes, 'clip', 'melody');
+        state.resultClips.unshift(clip);
+        Arranger.placeClip(clip.id, trackIndex, bar);
+      }
+      UI.setStatus('Progression filled');
+      Persistence.save();
+      App.updateUI();
     },
     async generateClip() {
       try {
@@ -726,6 +887,10 @@
     }
   };
 
+  /* ==========================================================
+   * 8. LYRICS, ARRANGEMENT LOGIC, AND CLIP RENDERING
+   * ========================================================== */
+
   const Lyrics = {
     suggest() {
       const chordWords = {
@@ -788,6 +953,10 @@
       if (startBar + clip.bars > state.arrangementBars) return false;
       for (let i = 0; i < clip.bars; i += 1) state.arrangement[trackIndex][startBar + i] = null;
       for (let i = 0; i < clip.bars; i += 1) state.arrangement[trackIndex][startBar + i] = { clipId, startBar, offsetBar: i };
+      const nextBar = startBar + clip.bars;
+      state.liveCaptureSuggestedBar = nextBar - 1;
+      state.lastSuggestedTrack = trackIndex;
+      UI.setStatus(nextBar < state.arrangementBars ? `Next chord suggestion: ${Settings.progressionChordLabel(nextBar)}` : 'Clip placed');
       Persistence.save();
       Arranger.renderArrangement();
       return true;
@@ -828,9 +997,35 @@
       AudioEngine.scheduleSequence(state.seedNotes, 0);
       UI.setStatus('Playing seed');
     },
+    stopTransportTimers() {
+      state.transportTimeouts.forEach((timeout) => clearTimeout(timeout));
+      state.transportTimeouts = [];
+    },
+    currentPlayheadBar() {
+      if (!state.arrangementIsPlaying || !state.arrangementStartedAt) return 0;
+      const elapsedSeconds = (performance.now() - state.arrangementStartedAt) / 1000;
+      const elapsedBeats = elapsedSeconds / Settings.beatToSeconds(1);
+      return Math.max(0, Math.min(state.arrangementBars - 1, Math.floor(elapsedBeats / BAR_BEATS)));
+    },
     async playArrangement() {
       await AudioEngine.ensureAudio();
+      if (state.arrangementIsPlaying && !state.arrangementPaused) {
+        await state.audioContext?.suspend();
+        state.arrangementPaused = true;
+        UI.setStatus('Arrangement paused');
+        App.updateUI();
+        return;
+      }
+      if (state.arrangementIsPlaying && state.arrangementPaused) {
+        await state.audioContext?.resume();
+        state.arrangementPaused = false;
+        UI.setStatus('Arrangement resumed');
+        App.updateUI();
+        return;
+      }
+      Arranger.stopTransportTimers();
       const seenStarts = new Set();
+      let totalBeats = 0;
       state.arrangement.forEach((track) => {
         track.forEach((slot, barIndex) => {
           if (!slot || slot.offsetBar !== 0) return;
@@ -839,10 +1034,22 @@
           seenStarts.add(key);
           const clip = state.resultClips.find((result) => result.id === slot.clipId);
           if (!clip) return;
+          totalBeats = Math.max(totalBeats, (barIndex * BAR_BEATS) + (clip.bars * BAR_BEATS));
           AudioEngine.scheduleSequence(clip.notes, barIndex * BAR_BEATS);
         });
       });
+      state.transportTotalBeats = totalBeats;
+      state.arrangementIsPlaying = true;
+      state.arrangementPaused = false;
+      state.arrangementStartedAt = performance.now();
+      state.transportTimeouts.push(window.setTimeout(() => {
+        state.arrangementIsPlaying = false;
+        state.arrangementPaused = false;
+        UI.setStatus('Arrangement complete');
+        App.updateUI();
+      }, Math.max(500, Settings.beatToSeconds(totalBeats || BAR_BEATS) * 1000)));
       UI.setStatus('Playing arrangement');
+      App.updateUI();
       Arranger.setLiveMode();
     },
     setLiveMode() {
@@ -901,8 +1108,10 @@
           <div class="clip-actions">
             <button class="btn play-clip">▷ Play</button>
             <button class="btn add-clip">＋ Add to arrangement</button>
+            <button class="btn small-btn send-companion">↗ Send to PianoCompanion</button>
           </div>`;
         card.querySelector('.play-clip')?.addEventListener('click', () => Arranger.playClip(clip.id));
+        card.querySelector('.send-companion')?.addEventListener('click', () => Engine.sendClipToCompanion(clip.id));
         card.querySelector('.add-clip')?.addEventListener('click', () => {
           const preferredTrack = clip.lane === 'drums' ? 3 : 0;
           const slot = Arranger.firstOpenSlot(clip.bars, preferredTrack);
@@ -920,7 +1129,10 @@
         const row = document.createElement('div');
         row.className = 'track-row';
         row.style.gridTemplateColumns = `120px repeat(${state.arrangementBars}, minmax(90px, 1fr))`;
-        row.innerHTML = `<div class="track-label">${TRACK_LABELS[trackIndex]}</div>`;
+        const nextChord = Settings.progressionChordLabel((state.liveCaptureSuggestedBar ?? trackIndex) + 1);
+        row.innerHTML = `<div class="track-label"><div class="track-label-main">${TRACK_LABELS[trackIndex]}</div><div class="track-label-actions"><button class="btn track-variation">→ Generate Variation</button></div><div class="track-label-suggestion"><div class="track-next">Next chord: ${nextChord}</div><button class="btn track-fill">Fill Progression</button></div></div>`;
+        row.querySelector('.track-variation')?.addEventListener('click', () => Engine.generateVariationForTrack(trackIndex));
+        row.querySelector('.track-fill')?.addEventListener('click', () => Engine.fillProgression(trackIndex === 3 ? 0 : trackIndex));
         for (let barIndex = 0; barIndex < state.arrangementBars; barIndex += 1) {
           const cell = document.createElement('div');
           cell.className = 'bar-cell';
@@ -959,6 +1171,10 @@
       }
     }
   };
+
+  /* ==========================================================
+   * 9. EXPORTS, SHARE LINKS, AND APP BOOTSTRAP
+   * ========================================================== */
 
   const Exporter = {
     varLen(n) {
@@ -1009,6 +1225,29 @@
       anchor.download = 'ius-music-assistant-songwriter.mid';
       anchor.click();
       setTimeout(() => URL.revokeObjectURL(anchor.href), 200);
+    },
+    exportSet() {
+      const payload = {
+        settings: Settings.snapshot(),
+        seedNotes: state.seedNotes,
+        resultClips: state.resultClips,
+        arrangementBars: state.arrangementBars,
+        arrangement: state.arrangement,
+        nextClipId: state.nextClipId,
+        lyrics: els.lyricsBox?.textContent || ''
+      };
+      const json = JSON.stringify(payload, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const anchor = document.createElement('a');
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = 'ius-improv-set.json';
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(anchor.href), 300);
+      const encoded = window.btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      const url = `${window.location.origin}${window.location.pathname}?set=${encoded}`;
+      if (navigator.clipboard?.writeText) navigator.clipboard.writeText(url).catch(() => console.warn('Clipboard unavailable'));
+      window.history.replaceState({}, '', `?set=${encoded}`);
+      UI.setStatus('Set exported + share link copied');
     },
     encodeWav(buffer) {
       const numChannels = buffer.numberOfChannels;
@@ -1098,6 +1337,8 @@
       App.updateUI();
     },
     updateUI() {
+      UI.syncLiveCaptureUI();
+      if (els.playArrangementBtn) els.playArrangementBtn.textContent = state.arrangementIsPlaying && !state.arrangementPaused ? '⏸ Arrangement' : '▶ Arrangement';
       if (els.capturedCount) els.capturedCount.textContent = String(state.seedNotes.length);
       if (els.generatedCount) els.generatedCount.textContent = String(state.resultClips.length);
       if (els.scaleReadout) els.scaleReadout.textContent = `${ROOT_LABEL[String(els.rootSelect?.value || 'C')] || String(els.rootSelect?.value || 'C')} ${String(els.scaleSelect?.value || 'major')}`;
@@ -1121,16 +1362,19 @@
       els.micCaptureBtn?.addEventListener('click', Input.toggleMicCapture);
       els.playArrangementBtn?.addEventListener('click', Arranger.playArrangement);
       els.clearArrangementBtn?.addEventListener('click', Arranger.clearArrangement);
+      els.fillProgressionBtn?.addEventListener('click', () => Engine.fillProgression(0));
+      els.exportSetBtn?.addEventListener('click', Exporter.exportSet);
       els.exportMidiBtn?.addEventListener('click', Exporter.exportMidi);
       els.exportWavBtn?.addEventListener('click', () => Exporter.exportWav().catch(console.error));
 
-      [els.rootSelect, els.scaleSelect, els.engineSelect, els.playbackSelect, els.styleSelect, els.stepSelect, els.progressionSelect, els.barsSelect, els.autoHarmonyToggle, els.liveModeToggle].forEach((el) => el?.addEventListener('change', App.updateUI));
+      [els.rootSelect, els.scaleSelect, els.engineSelect, els.playbackSelect, els.styleSelect, els.stepSelect, els.progressionSelect, els.barsSelect, els.autoHarmonyToggle, els.liveModeToggle, els.liveCaptureToggle, els.liveBufferSelect].forEach((el) => el?.addEventListener('change', App.updateUI));
       els.trackBarsSelect?.addEventListener('change', () => { Arranger.resizeArrangement(Number(els.trackBarsSelect.value)); App.updateUI(); });
       els.bpmInput?.addEventListener('input', App.debounce(App.updateUI, 100));
       els.temperatureRange?.addEventListener('input', App.debounce(Persistence.save, 100));
       window.addEventListener('beforeunload', Persistence.save);
 
       document.addEventListener('keydown', (event) => {
+        if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName || '')) return;
         if (event.repeat) return;
         if (event.code === 'Space') {
           event.preventDefault();
@@ -1163,6 +1407,7 @@
       Arranger.resizeArrangement(Number(els.trackBarsSelect?.value || state.arrangementBars || 16));
       App.register();
       UI.setProgress(0, 'Models');
+      UI.setCompanion('Send a generated clip here to inspect root movement, chord shells, and inversion ideas while the arrangement keeps playing.', 'Waiting for clip');
       App.updateUI();
     }
   };

@@ -121,6 +121,13 @@
             </label>
             <label class="checkbox-row"><input id="autoHarmonyToggle" type="checkbox" /> <span>Auto Harmony</span></label>
             <label class="checkbox-row"><input id="liveModeToggle" type="checkbox" /> <span>Live Mode</span></label>
+            <label class="checkbox-row live-capture-row"><input id="liveCaptureToggle" type="checkbox" /> <span>🔴 Live Capture</span></label>
+            <label>
+              <span>Live Buffer</span>
+              <select id="liveBufferSelect">
+                <option value="4">4 bars</option><option value="8" selected>8 bars</option><option value="16">16 bars</option>
+              </select>
+            </label>
           </div>
 
           <div class="button-row block-row">
@@ -170,6 +177,8 @@
             </div>
             <div class="button-row compact transport-actions">
               <button id="playArrangementBtn" class="btn btn-solid">▶ Arrangement</button>
+              <button id="fillProgressionBtn" class="btn">⇢ Fill Progression</button>
+              <button id="exportSetBtn" class="btn">⤴ Export Set</button>
               <button id="clearArrangementBtn" class="btn">⌫ Arrangement</button>
             </div>
           </div>
@@ -191,6 +200,14 @@
             <div class="button-row compact">
               <button id="speakLyricsBtn" class="btn">♫ Speak</button>
             </div>
+          </section>
+
+          <section class="panel companion-panel">
+            <div class="section-head">
+              <h2>PianoCompanion Bridge</h2>
+              <div id="companionStatus" class="status">Waiting for clip</div>
+            </div>
+            <div id="companionBox" class="lyrics-box">Send a generated clip here to inspect root movement, chord shells, and inversion ideas while the arrangement keeps playing.</div>
           </section>
 
           <section class="panel arranger-panel bottom-arranger">

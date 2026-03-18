@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PianoCompanion Bridge</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <section class="panel">
+        <div class="section-head">
+          <h1 style="font-size:1.6rem;">PianoCompanion Bridge</h1>
+          <div class="status" id="miniStatus">Ready</div>
+        </div>
+        <div id="miniRoots" class="lyrics-box">Waiting for root notes…</div>
+      </section>
+    </div>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const roots = (params.get('roots') || '').split(',').filter(Boolean);
+        const bpm = params.get('bpm') || '110';
+        const scale = params.get('scale') || 'major';
+        const box = document.getElementById('miniRoots');
+        const status = document.getElementById('miniStatus');
+        if (!roots.length) {
+          box.textContent = 'Open this page from the main app with “Send to PianoCompanion” to preload the clip root notes.';
+          return;
+        }
+        const first = roots[0] || 'C';
+        const second = roots[1] || roots[0] || 'E';
+        const third = roots[2] || roots[1] || 'G';
+        status.textContent = `${first} ${scale}`;
+        box.textContent = [
+          `Roots: ${roots.join(' · ')}`,
+          '',
+          `Shell voicing: ${first} – ${third} – ${second}`,
+          `1st inversion: ${second} – ${third} – ${first}`,
+          `Open voicing: ${first} – ${third} – ${(roots[3] || second)}`,
+          '',
+          `Tempo reference: ${bpm} BPM`,
+          'Use these notes as a quick voicing sketch while the arrangement continues in the main app.'
+        ].join('\n');
+      })();
+    </script>
+  </body>
+</html>
