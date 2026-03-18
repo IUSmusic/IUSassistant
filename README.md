@@ -178,7 +178,18 @@ In no event shall the author or copyright holder be liable for any claim, damage
 For licensing requests, commercial rights, redistribution requests, or permission to use protected brand assets, prior written permission must be obtained from I/US Music.
 If this repository is hosted publicly on GitHub, GitHub users may have certain limited rights to view and fork the repository through GitHub’s own platform functionality, as required by GitHub’s Terms of Service. No permission is granted beyond those minimum platform rights unless explicit written permission is given by I/US Music.
 
-# I/US Source-Available License 1.0
+## License
+
+**I/US Source-Available License 1.0**
+
+See [LICENSE](./LICENSE).
+
+Copyright (c) 2026 Pezhman Farhangi  
+I/US Music
+
+## Contact
+
+For licensing requests, commercial rights, redistribution requests, derivative work permissions, or permission to use protected brand assets, prior written permission must be obtained from I/US Music.
 
 <a href="LICENSE">
   <img src="images/license-badge.png" alt="License badge" width="70">
