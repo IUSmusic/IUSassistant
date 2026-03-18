@@ -1,3 +1,5 @@
+![License badge](images/license-badge.png)
+
 # I/US Music Assistant Songwriter
 
 Web preview:  
@@ -174,3 +176,5 @@ For licensing requests, commercial rights, redistribution requests, or permissio
 If this repository is hosted publicly on GitHub, GitHub users may have certain limited rights to view and fork the repository through GitHub’s own platform functionality, as required by GitHub’s Terms of Service. No permission is granted beyond those minimum platform rights unless explicit written permission is given by I/US Music.
 
 # I/US Source-Available License 1.0
+
+![License badge](images/license-badge.png)
