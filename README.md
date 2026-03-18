@@ -179,4 +179,6 @@ If this repository is hosted publicly on GitHub, GitHub users may have certain l
 
 # I/US Source-Available License 1.0
 
-![License badge](images/license-badge.png)
+<a href="LICENSE">
+  <img src="images/license-badge.png" alt="License badge" width="70">
+</a>
